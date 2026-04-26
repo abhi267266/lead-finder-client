@@ -15,6 +15,11 @@ interface Post {
   Upvotes: number;
   CommentCount: number;
   PostedAt: any;
+  Score: number;
+  Category: string;
+  AiSummary: string;
+  IsLead: boolean;
+  ProcessedAt?: any;
 }
 
 interface Campaign {
@@ -46,6 +51,12 @@ export default function CampaignDetails() {
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [subredditFilter, setSubredditFilter] = useState<string>("all");
+  // Tick every second to drive per-post retry countdowns
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // Edit form state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -366,22 +377,82 @@ export default function CampaignDetails() {
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-400">
-                    <div className="flex items-center gap-1.5 font-medium text-slate-300 bg-white/5 px-2.5 py-1 rounded-md">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 font-medium text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-md">
                       <span className="text-secondary">r/{post.Subreddit}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-md">
                       <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z" /></svg>
                       <span>{post.Upvotes}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-md">
                       <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                       <span>{post.CommentCount} comments</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-md">
                       <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       <span>u/{post.Author}</span>
                     </div>
                   </div>
+
+                  {/* Groq AI Analysis Section — three states: pending | error with countdown | success */}
+                  {post.Category === "" ? (
+                    // Pending: backend hasn't scored it yet
+                    <div className="mt-5 p-3 rounded-lg border border-slate-700/50 bg-slate-800/20 flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500"></div>
+                      <span className="text-xs text-slate-400">Groq is analyzing this post...</span>
+                    </div>
+                  ) : post.Category === "error" ? (() => {
+                    // Error: parse Groq's retry timestamp from AiSummary
+                    const retryAt = post.AiSummary ? new Date(post.AiSummary) : null;
+                    const secsLeft = retryAt && !isNaN(retryAt.getTime())
+                      ? Math.max(0, Math.ceil((retryAt.getTime() - now.getTime()) / 1000))
+                      : null;
+                    return (
+                      <div className="mt-5 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 flex items-center gap-3">
+                        <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          {secsLeft !== null && secsLeft > 0 ? (
+                            <>
+                              <span className="text-xs text-amber-300 font-medium">Groq rate limited — retrying in </span>
+                              <span className="text-xs font-bold text-amber-200 tabular-nums">{secsLeft}s</span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-amber-300">Groq retrying now...</span>
+                          )}
+                          <p className="text-[10px] text-slate-500 mt-0.5">Auto-retry on next poll · No action needed</p>
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    // Success: show Groq analysis card
+                    <div className="mt-5 p-4 rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-2 opacity-30">
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-indigo-400">Powered by Groq</span>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-full bg-indigo-500/20 border border-indigo-500/30">
+                          <span className="text-xl font-bold text-indigo-400">{post.Score}</span>
+                          <span className="text-[9px] text-indigo-300 uppercase tracking-wider">Score</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              {post.Category}
+                            </span>
+                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                              Llama 3 (8B)
+                            </span>
+                          </div>
+                          <p className="text-sm text-indigo-100/80 italic">
+                            "{post.AiSummary}"
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
