@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { getCurrentUser, signOut } from "aws-amplify/auth";
 
 export default function DashboardLayout({
   children,
@@ -17,12 +18,9 @@ export default function DashboardLayout({
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me");
-        if (!res.ok) {
-          throw new Error("unauthorized");
-        }
-        const data = await res.json();
-        setUser(data.user);
+        const currentUser = await getCurrentUser();
+        // Fallback to signInDetails for email if username is an ID
+        setUser({ Email: currentUser.signInDetails?.loginId || currentUser.username });
         setLoading(false);
       } catch (err) {
         router.push("/login");
@@ -32,7 +30,7 @@ export default function DashboardLayout({
   }, [router]);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await signOut();
     router.push("/login");
   };
 

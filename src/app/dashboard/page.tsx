@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { authFetch } from "@/utils/authFetch";
 
 interface Campaign {
   ID: number;
@@ -43,7 +44,7 @@ export default function Dashboard() {
   const [creating, setCreating] = useState(false);
 
   const fetchCampaigns = () => {
-    fetch("/api/campaigns")
+    authFetch("/api/campaigns")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch campaigns");
         return res.json();
@@ -74,7 +75,7 @@ export default function Dashboard() {
         max_age_days: form.max_age_days,
       };
 
-      const res = await fetch("/api/campaigns", {
+      const res = await authFetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

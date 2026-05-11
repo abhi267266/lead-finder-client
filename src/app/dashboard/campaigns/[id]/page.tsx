@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { authFetch } from "@/utils/authFetch";
 
 interface Post {
   ID: number;
@@ -76,11 +77,11 @@ export default function CampaignDetails() {
 
   const fetchData = () => {
     return Promise.all([
-      fetch(`/api/campaigns/${id}`).then(res => {
+      authFetch(`/api/campaigns/${id}`).then(res => {
         if (!res.ok) throw new Error("Failed to load campaign details");
         return res.json();
       }),
-      fetch(`/api/campaigns/${id}/posts`).then(res => {
+      authFetch(`/api/campaigns/${id}/posts`).then(res => {
         if (!res.ok) throw new Error("Failed to load campaign posts");
         return res.json();
       })
@@ -150,7 +151,7 @@ export default function CampaignDetails() {
     if (!campaign) return;
     setUpdating(true);
     try {
-      const res = await fetch(`/api/campaigns/${id}/status`, {
+      const res = await authFetch(`/api/campaigns/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !campaign.Active })
@@ -171,7 +172,7 @@ export default function CampaignDetails() {
     }
     setUpdating(true);
     try {
-      const res = await fetch(`/api/campaigns/${id}`, {
+      const res = await authFetch(`/api/campaigns/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error("Failed to delete campaign");
@@ -188,7 +189,7 @@ export default function CampaignDetails() {
       return;
     }
     try {
-      const res = await fetch(`/api/posts/${postId}`, {
+      const res = await authFetch(`/api/posts/${postId}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error("Failed to delete post");
@@ -229,7 +230,7 @@ export default function CampaignDetails() {
         max_age_days: editForm.max_age_days,
       };
 
-      const res = await fetch(`/api/campaigns/${id}`, {
+      const res = await authFetch(`/api/campaigns/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

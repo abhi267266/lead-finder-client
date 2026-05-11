@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signUp } from "aws-amplify/auth";
 
 export default function Register() {
   const router = useRouter();
@@ -17,18 +18,17 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      await signUp({
+        username: email,
+        password,
+        options: {
+          userAttributes: {
+            email,
+          },
+        }
       });
 
-      if (!res.ok) {
-        if (res.status === 409) throw new Error("Email already registered");
-        throw new Error("Failed to register. Password must be at least 6 characters.");
-      }
-
-      router.push("/dashboard");
+      router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
       setLoading(false);

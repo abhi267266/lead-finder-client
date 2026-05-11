@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "aws-amplify/auth";
 
 export default function Login() {
   const router = useRouter();
@@ -17,14 +18,11 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const { nextStep } = await signIn({ username: email, password });
 
-      if (!res.ok) {
-        throw new Error("Invalid credentials");
+      if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
+        router.push(`/verify?email=${encodeURIComponent(email)}`);
+        return;
       }
 
       router.push("/dashboard");
