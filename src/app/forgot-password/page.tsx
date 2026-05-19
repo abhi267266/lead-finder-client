@@ -16,6 +16,7 @@ export default function ForgotPassword() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,11 +26,13 @@ export default function ForgotPassword() {
     try {
       const output = await resetPassword({ username: email });
       console.log("Reset Password Output:", output);
+      setDebugInfo(JSON.stringify(output, null, 2));
       
       setStep(2);
       setSuccessMessage("If the email is registered and verified, a verification code has been sent.");
     } catch (err: any) {
       console.error("Reset Password Error:", err);
+      setDebugInfo(JSON.stringify(err, null, 2));
       setError(err.message || "Failed to request password reset code");
     } finally {
       setLoading(false);
@@ -82,6 +85,13 @@ export default function ForgotPassword() {
         {successMessage && (
           <div className="mb-5 p-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-sm">
             {successMessage}
+          </div>
+        )}
+
+        {debugInfo && (
+          <div className="mb-5 p-3 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs overflow-auto font-mono whitespace-pre-wrap max-h-40">
+            <strong>Debug Output:</strong><br/>
+            {debugInfo}
           </div>
         )}
 
