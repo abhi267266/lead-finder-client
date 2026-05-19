@@ -92,10 +92,15 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-400">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary hover:text-indigo-400 font-medium transition-colors">
-            Register here
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between text-sm text-slate-400 gap-4">
+          <div>
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-primary hover:text-indigo-400 font-medium transition-colors">
+              Register here
+            </Link>
+          </div>
+          <Link href="/forgot-password" className="text-primary hover:text-indigo-400 font-medium transition-colors">
+            Forgot Password?
           </Link>
         </div>
       </div>
